@@ -275,6 +275,21 @@ button:not(:disabled):hover, button:focus-visible {
 .chronicles-gate-actions>.chronicles-gate-choice:hover strong,
 .chronicles-gate-actions>.chronicles-gate-choice:focus-visible strong{color:#f8eefc}
 @media(max-width:750px){.chronicles-gate-actions>.chronicles-gate-choice{min-height:160px;padding:20px}}
+<style>
+/* Keep the familiar Chronicles wordmark visible on the welcome and management screens.
+   Hide creator-only navigation there, while retaining the text-sized home click target. */
+body:has(#chroniclesWelcome:not([hidden])) .topbar,
+body:has(#chroniclesManager:not([hidden])) .topbar { z-index:1100; height:82px; grid-template-columns:1fr; grid-template-rows:82px; }
+body:has(#chroniclesWelcome:not([hidden])) .topbar .step,
+body:has(#chroniclesManager:not([hidden])) .topbar .step,
+body:has(#chroniclesWelcome:not([hidden])) #chroniclesStageNav,
+body:has(#chroniclesManager:not([hidden])) #chroniclesStageNav { display:none!important; }
+body:has(#chroniclesWelcome:not([hidden])) .chronicles-gate { padding-top:110px; }
+@media(max-width:600px){
+ body:has(#chroniclesWelcome:not([hidden])) .topbar,
+ body:has(#chroniclesManager:not([hidden])) .topbar { height:70px; grid-template-rows:70px; }
+}
+</style>
 </style>
 </head>
 <body>
@@ -304,7 +319,7 @@ button:not(:disabled):hover, button:focus-visible {
    <div class="chronicles-manager-actions">
     <button type="button" id="chroniclesEdit">✎ EDIT CHARACTER</button>
     <button type="button" id="chroniclesView" class="chronicles-manager-secondary">VIEW FULL SUMMARY</button>
-    <button type="button" id="chroniclesSave">↓ SAVE UPDATED JSON</button>
+    <button type="button" id="chroniclesLevelStart" class="chronicles-manager-secondary">✦ LEVEL UP</button><button type="button" id="chroniclesSave">↓ SAVE UPDATED JSON</button>
     <button type="button" id="chroniclesOverwrite" class="chronicles-manager-secondary" hidden>↻ OVERWRITE ORIGINAL FILE</button>
    </div>
    <p id="chroniclesManagerStatus" class="chronicles-manager-status" role="status"></p>
@@ -315,6 +330,7 @@ button:not(:disabled):hover, button:focus-visible {
  </div>
 </section>
 
+<section id="chroniclesLevelWizard" class="chronicles-manager" hidden><div class="chronicles-manager-shell"><div class="eyebrow" id="chroniclesLevelStep"></div><h1 id="chroniclesLevelTitle">LEVEL UP</h1><div class="chronicles-manager-panel"><div id="chroniclesLevelBody" class="level-body"></div><p id="chroniclesLevelMessage" class="chronicles-manager-status" role="alert"></p><div class="chronicles-manager-actions"><button type="button" id="chroniclesLevelExit" class="chronicles-manager-secondary">← SAVE DRAFT & EXIT</button><button type="button" id="chroniclesLevelBack" class="chronicles-manager-secondary">← BACK</button><button type="button" id="chroniclesLevelNext">CONTINUE →</button></div></div></div></section>
 <header class="topbar">
   <button type="button" class="brand chronicles-home-link" id="chroniclesHome" aria-label="Return to Your Story Awaits and discard current character" title="Return to Your Story Awaits">CHRONICLES<small>THE REALMS AWAIT</small></button>
   <div class="step" id="chroniclesPageTracker"><strong>01</strong> &nbsp;/&nbsp; 08 &nbsp; · &nbsp; LINEAGE</div>
@@ -1311,16 +1327,17 @@ function renderIdentity(){const c=getChar(),id=c.identity||{};document.getElemen
 document.getElementById('identityFinish').onclick=()=>{const name=document.getElementById('id_characterName').value.trim();const error=document.getElementById('identityError');if(!name){error.textContent='Please enter a character name before continuing.';error.hidden=false;document.getElementById('id_characterName').focus();return;}const c=getChar();c.characterName=name;c.identity={};identityKeys.forEach(k=>c.identity[k]=document.getElementById('id_'+k).value.trim());putChar(c);openStep('summary');};
 function renderSummary(){document.getElementById('chroniclesRerollPanel').hidden=!getChar().randomGenerated;const c=getChar(),root=document.getElementById('characterSummary');root.replaceChildren();const grid=el('div',undefined,'summary-grid');root.append(grid);
  const panel=(title,lines)=>{const p=el('section',undefined,'feature-panel');p.append(el('h2',title));lines.forEach(x=>p.append(el('p',x)));grid.append(p);return p};
- panel('IDENTITY',[(c.characterName||'Unnamed hero')+' · '+(c.race||'Unknown')+' · '+(c.class||'Unknown')+' · Level 1','Background: '+(c.background?.name||'None'),...Object.entries(c.identity||{}).filter(([k,v])=>v).map(([k,v])=>identityLabels[k]+': '+v)]);
+ panel('IDENTITY',[(c.characterName||'Unnamed hero')+' · '+(c.race||'Unknown')+' · '+(c.class||'Unknown')+' · Level '+(c.level||1),'Background: '+(c.background?.name||'None'),...Object.entries(c.identity||{}).filter(([k,v])=>v).map(([k,v])=>identityLabels[k]+': '+v)]);
  const ability=panel('ABILITY SCORES',[]),scores=el('div',undefined,'summary-scores');Object.entries(c.finalAbilityScores||{}).forEach(([k,v])=>{const b=el('div',undefined,'summary-score');b.append(el('strong',k.toUpperCase()),el('span',String(v)+' ('+(abilityMod(v)>=0?'+':'')+abilityMod(v)+')'));scores.append(b)});ability.append(scores);
+ panel('LEVEL PROGRESSION',['Level: '+(c.level||1),'Proficiency bonus: +'+(c.proficiencyBonus||((c.level||1)>=5?3:2)),'Maximum hit points: '+(c.maxHitPoints??'Not yet recorded'),...(c.levelProgression||[]).map(x=>'Level '+x.level+': '+x.features.join(', ')+(x.choices?.subclass?' · '+x.choices.subclass:''))]);
  const ac=calculateArmorClass(c);panel('ARMOR CLASS',[String(ac.value)+' AC',ac.source+(ac.shield?' + shield (+2)':'')+(ac.defense?' + Defense fighting style (+1)':''),ac.assumption]);
  const prof=c.proficiencies||{};panel('PROFICIENCIES',['Skills: '+(prof.skills||[]).join(', '),'Saving throws: '+(prof.savingThrows||[]).join(', '),'Armor: '+(prof.armor||[]).join(', '),'Weapons: '+(prof.weapons||[]).join(', '),'Tools: '+(prof.tools||[]).join(', '),'Languages: '+(prof.languages||[]).join(', ')]);
  const feats=c.classFeatures||{};panel('CLASS FEATURES',[...(feats.automatic||[]),...Object.entries(feats.choices||{}).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v))]);
- const spells=c.spells||{};panel('RACIAL TRAITS',[...(c.raceBenefits||[]),...(c.racialSpells||[]).map(x=>'Racial cantrip: '+x.name+' ('+x.ability+')')]);panel('MAGIC',['Casting ability: '+(spells.castingAbility||'None'),'Spellcasting modifier: '+(spells.spellcastingModifier===null||spells.spellcastingModifier===undefined?'N/A':(spells.spellcastingModifier>=0?'+':'')+spells.spellcastingModifier),'Cantrips: '+(spells.cantrips||[]).join(', '),'Domain cantrips: '+(spells.domainCantrips||[]).join(', '),'Level-one spells: '+(spells.level1||[]).join(', ')]);
+ const spells=c.spells||{};panel('RACIAL TRAITS',[...(c.raceBenefits||[]),...(c.racialSpells||[]).map(x=>'Racial cantrip: '+x.name+' ('+x.ability+')')]);panel('MAGIC',['Casting ability: '+(spells.castingAbility||'None'),'Spellcasting modifier: '+(spells.spellcastingModifier===null||spells.spellcastingModifier===undefined?'N/A':(spells.spellcastingModifier>=0?'+':'')+spells.spellcastingModifier),'Cantrips: '+(spells.cantrips||[]).join(', '),'Domain cantrips: '+(spells.domainCantrips||[]).join(', '),'Level-one spells: '+(spells.level1||[]).join(', '),'Level-two spells: '+(spells.level2||[]).join(', '),'Level-three spells: '+(spells.level3||[]).join(', '),'Spell attack bonus: '+(spells.spellAttackBonus??'—'),'Spell save DC: '+(spells.spellSaveDC??'—'),'Spell slots: '+(spells.spellSlots||[]).join(' / ')]);
  const attacks=calculateWeaponAttacks(c);panel('WEAPON ATTACKS',attacks.length?attacks.map(w=>w.name+' · '+(w.attackBonus>=0?'+':'')+w.attackBonus+' to hit · '+w.damage+' ('+w.notes+')'):['No weapons selected']);
  const eq=c.equipment||{};panel('EQUIPMENT',['Selection: '+(eq.kitName||'Custom'),'Items:\n'+equipmentLines(eq.items).join('\n'),'Background gear: '+(eq.backgroundItems||[]).join(', ')]);
 }
-function downloadCharacter(type){const c=getChar();let content,filename,mime;if(type==='json'){content=JSON.stringify(c,null,2);filename='chronicles-character.json';mime='application/json';}else{const fmt=(v)=>Array.isArray(v)?v.join(', '):String(v??'—');const sections=[['CHARACTER',['Name: '+fmt(c.characterName),'Race: '+fmt(c.race),'Class: '+fmt(c.class),'Level: 1','Background: '+fmt(c.background?.name)]],['IDENTITY & PERSONALITY',Object.entries(c.identity||{}).filter(([k,v])=>v).map(([k,v])=>(identityLabels[k]||k)+': '+v)],['ABILITY SCORES',Object.entries(c.finalAbilityScores||{}).map(([k,v])=>k.toUpperCase()+': '+v+' ('+(abilityMod(v)>=0?'+':'')+abilityMod(v)+')')],['ARMOR CLASS',[String(calculateArmorClass(c).value)+' — '+calculateArmorClass(c).source]],['PROFICIENCIES',Object.entries(c.proficiencies||{}).filter(([k,v])=>Array.isArray(v)).map(([k,v])=>k+': '+fmt(v))],['RACIAL TRAITS',[...(c.raceBenefits||[]),...(c.racialSpells||[]).map(x=>'Racial cantrip: '+x.name)]],['CLASS FEATURES',[...(c.raceBenefits||[]),...(c.classFeatures?.automatic||[]),...Object.entries(c.classFeatures?.choices||{}).map(([k,v])=>k+': '+fmt(v))]],['SPELLS',['Cantrips: '+fmt(c.spells?.cantrips),'Bonus cantrips: '+fmt(c.spells?.domainCantrips),'Level-one spells: '+fmt(c.spells?.level1)]],['ATTACKS & SPELLCASTING',calculateWeaponAttacks(c).map(w=>w.name+' | To hit '+(w.attackBonus>=0?'+':'')+w.attackBonus+' | '+w.damage+' | '+w.notes)],['EQUIPMENT',[...equipmentLines(c.equipment?.items),'Background gear: '+fmt(c.equipment?.backgroundItems)]]];content='CHRONICLES · CHARACTER SHEET\n\n'+sections.map(([name,lines])=>name+'\n'+'-'.repeat(name.length)+'\n'+lines.join('\n')).join('\n\n');filename='chronicles-character.txt';mime='text/plain';}const blob=new Blob([content],{type:mime+';charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function downloadCharacter(type){const c=getChar();let content,filename,mime;if(type==='json'){content=JSON.stringify(c,null,2);filename='chronicles-character.json';mime='application/json';}else{const fmt=(v)=>Array.isArray(v)?v.join(', '):String(v??'—');const sections=[['CHARACTER',['Name: '+fmt(c.characterName),'Race: '+fmt(c.race),'Class: '+fmt(c.class),'Level: '+(c.level||1),'Background: '+fmt(c.background?.name)]],['IDENTITY & PERSONALITY',Object.entries(c.identity||{}).filter(([k,v])=>v).map(([k,v])=>(identityLabels[k]||k)+': '+v)],['ABILITY SCORES',Object.entries(c.finalAbilityScores||{}).map(([k,v])=>k.toUpperCase()+': '+v+' ('+(abilityMod(v)>=0?'+':'')+abilityMod(v)+')')],['ARMOR CLASS',[String(calculateArmorClass(c).value)+' — '+calculateArmorClass(c).source]],['PROFICIENCIES',Object.entries(c.proficiencies||{}).filter(([k,v])=>Array.isArray(v)).map(([k,v])=>k+': '+fmt(v))],['RACIAL TRAITS',[...(c.raceBenefits||[]),...(c.racialSpells||[]).map(x=>'Racial cantrip: '+x.name)]],['CLASS FEATURES',[...(c.raceBenefits||[]),...(c.classFeatures?.automatic||[]),...Object.entries(c.classFeatures?.choices||{}).map(([k,v])=>k+': '+fmt(v))]],['SPELLS',['Cantrips: '+fmt(c.spells?.cantrips),'Bonus cantrips: '+fmt(c.spells?.domainCantrips),'Level-one spells: '+fmt(c.spells?.level1),'Level-two spells: '+fmt(c.spells?.level2),'Level-three spells: '+fmt(c.spells?.level3),'Spell attack bonus: '+fmt(c.spells?.spellAttackBonus),'Spell save DC: '+fmt(c.spells?.spellSaveDC),'Spell slots: '+fmt(c.spells?.spellSlots)]],['ATTACKS & SPELLCASTING',calculateWeaponAttacks(c).map(w=>w.name+' | To hit '+(w.attackBonus>=0?'+':'')+w.attackBonus+' | '+w.damage+' | '+w.notes)],['EQUIPMENT',[...equipmentLines(c.equipment?.items),'Background gear: '+fmt(c.equipment?.backgroundItems)]]];content='CHRONICLES · CHARACTER SHEET\n\n'+sections.map(([name,lines])=>name+'\n'+'-'.repeat(name.length)+'\n'+lines.join('\n')).join('\n\n');filename='chronicles-character.txt';mime='text/plain';}const blob=new Blob([content],{type:mime+';charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 document.getElementById('exportText').onclick=()=>downloadCharacter('text');document.getElementById('exportJson').onclick=()=>downloadCharacter('json');document.getElementById('summaryEdit').onclick=()=>openStep('identity');
 
 </script>
@@ -1363,12 +1380,12 @@ document.getElementById('exportText').onclick=()=>downloadCharacter('text');docu
  function hideCreator(){
    if(typeof hideChroniclesStageNav==='function')hideChroniclesStageNav();
   ['classPage','abilityPage','backgroundPage','proficiencyPage','futurePage','equipmentPage','identityPage','summaryPage'].forEach(id=>document.getElementById(id).hidden=true);
-  document.body.classList.remove('chronicles-inner-page');document.querySelector('.topbar').style.display='none';document.querySelector('.hero').style.display='none';document.getElementById('raceGrid').style.display='none';document.querySelector('.footer').style.display='none';document.querySelectorAll('.race-nav,.race-counter').forEach(x=>x.style.display='none');
+  document.body.classList.remove('chronicles-inner-page');document.querySelector('.topbar').style.display='';document.querySelector('.hero').style.display='none';document.getElementById('raceGrid').style.display='none';document.querySelector('.footer').style.display='none';document.querySelectorAll('.race-nav,.race-counter').forEach(x=>x.style.display='none');
  }
  function filename(){const name=(current().characterName||'chronicles-character').normalize('NFKD').replace(/[^a-zA-Z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,65)||'chronicles-character';return name+'.json'}
  function showWelcome(){snapshotDraft();hideCreator();manager.hidden=true;welcome.hidden=false;error.textContent='';renderLibrary();window.scrollTo(0,0)}
  function renderManager(){
-  const c=current();document.getElementById('chroniclesManagerName').textContent=c.characterName||'Unnamed Adventurer';
+  const c=current();document.getElementById('chroniclesManagerName').textContent=c.characterName||'Unnamed Adventurer';document.getElementById('chroniclesLevelStart').disabled=Number(c.level||1)>=5||!c.class;
   const items=[['LINEAGE',c.raceName||c.race||'Unknown'],['CLASS',c.class||'Unknown'],['LEVEL',String(c.level||1)],['BACKGROUND',c.background?.name||'Not selected']];
   const root=document.getElementById('chroniclesManagerStats');root.replaceChildren();
   items.forEach(([label,value])=>{const box=document.createElement('div');box.className='chronicles-manager-stat';const caption=document.createElement('span');caption.textContent=label;const strong=document.createElement('strong');strong.textContent=value;box.append(caption,strong);root.append(box)});
@@ -1376,6 +1393,8 @@ document.getElementById('exportText').onclick=()=>downloadCharacter('text');docu
   status.textContent=changed?'Unsaved changes — save your updated JSON to preserve them.':'Character loaded. No changes since the last save.';
   document.getElementById('chroniclesOverwrite').hidden=!originalHandle;
  }
+ window.chroniclesRefreshManager=()=>{renderManager();renderLibrary()};
+ document.getElementById('chroniclesLevelStart').onclick=()=>window.startChroniclesLevelUp();
  function showManager(){snapshotDraft();hideCreator();welcome.hidden=true;manager.hidden=false;renderManager();renderLibrary();window.scrollTo(0,0)}
  function isCharacter(c){return c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.race==='string'&&typeof c.class==='string'&&c.finalAbilityScores&&typeof c.finalAbilityScores==='object'&&!Array.isArray(c.finalAbilityScores)}
  function importCharacter(content,name,handle){
@@ -1397,6 +1416,7 @@ document.getElementById('exportText').onclick=()=>downloadCharacter('text');docu
  }
  input.addEventListener('change',async()=>{const file=input.files?.[0];if(!file)return;try{importCharacter(await file.text(),file.name,null)}catch(err){error.textContent=err.message}});
  document.getElementById('chroniclesHome').onclick=()=>{
+  if(!welcome.hidden)return;
   if(!confirm('Return to Your Story Awaits? Your current character will remain in the browser draft library, but this working session will be reset.'))return;
   snapshotDraft();['dndCharacter','chroniclesLoadedCharacter','chroniclesHighestStage','chroniclesStartFresh'].forEach(key=>sessionStorage.removeItem(key));resetActive();
   chroniclesHighestStage=0;originalHandle=null;originalFileName='';lastSaved='';
@@ -1541,13 +1561,13 @@ async function exportCharacterPdf(){
   const n=v=>Number(v)||0,mod=v=>Math.floor((n(v)-10)/2),signed=v=>(v>=0?'+':'')+v;
   function fill(name,value){try{const f=form.getTextField(name);f.setText(String(value??''));/* Explicit font size prevents PDF viewers from auto-enlarging form text. Smaller sizes are intentional for multiline fields. */f.setFontSize(f.isMultiline()?9:12);}catch(e){console.warn('PDF field skipped',name,e.message)}}
   function check(name,checked){try{const f=form.getCheckBox(name);if(checked)f.check();else f.uncheck();}catch(e){console.warn('PDF checkbox skipped',name,e.message)}}
-  fill('PlayerName',c.identity?.playerName||'');fill('Alignment',c.identity?.alignment||'');for(const [key,field] of Object.entries(identityPdfFields))fill(field,c.identity?.[key]||'');if(c.identity?.appearance)fill('Backstory',[c.identity?.backstory||'', 'Appearance: '+c.identity.appearance].filter(Boolean).join('\n\n'));fill('ClassLevel',(c.class||'')+' 1');fill('Background',c.background?.name||'');fill('Race ',c.raceName||c.race||'');
+  fill('PlayerName',c.identity?.playerName||'');fill('Alignment',c.identity?.alignment||'');for(const [key,field] of Object.entries(identityPdfFields))fill(field,c.identity?.[key]||'');if(c.identity?.appearance)fill('Backstory',[c.identity?.backstory||'', 'Appearance: '+c.identity.appearance].filter(Boolean).join('\n\n'));fill('ClassLevel',(c.class||'')+' '+(c.level||1));fill('Background',c.background?.name||'');fill('Race ',c.raceName||c.race||'');
   fill('AC',calculateArmorClass(c).value);
-  fill('XP','0');fill('ProfBonus','+2');fill('Initiative',signed(mod(scores.dexterity)));fill('Speed',({'human':30,'elf':30,'dwarf':25,'half-elf':30,'half-orc':30,'halfling':25,'gnome':25,'dragonborn':30,'tiefling':30})[c.race]||30);
+  fill('XP','0');fill('ProfBonus','+'+(c.proficiencyBonus||((c.level||1)>=5?3:2)));fill('Initiative',signed(mod(scores.dexterity)));fill('Speed',({'human':30,'elf':30,'dwarf':25,'half-elf':30,'half-orc':30,'halfling':25,'gnome':25,'dragonborn':30,'tiefling':30})[c.race]||30);
   const map={strength:['STR','STRmod','ST Strength'],dexterity:['DEX','DEXmod ','ST Dexterity'],constitution:['CON','CONmod','ST Constitution'],intelligence:['INT','INTmod','ST Intelligence'],wisdom:['WIS','WISmod','ST Wisdom'],charisma:['CHA','CHamod','ST Charisma']};
-  for(const [ability,fields] of Object.entries(map)){if(scores[ability]===undefined)continue;fill(fields[0],scores[ability]);fill(fields[1],signed(mod(scores[ability])));fill(fields[2],signed(mod(scores[ability])+((prof.savingThrows||[]).some(x=>String(x).toLowerCase()===ability)?2:0)));}
+  for(const [ability,fields] of Object.entries(map)){if(scores[ability]===undefined)continue;fill(fields[0],scores[ability]);fill(fields[1],signed(mod(scores[ability])));fill(fields[2],signed(mod(scores[ability])+((prof.savingThrows||[]).some(x=>String(x).toLowerCase()===ability)?(c.proficiencyBonus||((c.level||1)>=5?3:2)):0)));}
   const skills={Acrobatics:['dexterity','Acrobatics'], 'Animal Handling':['wisdom','Animal'],Arcana:['intelligence','Arcana'],Athletics:['strength','Athletics'],Deception:['charisma','Deception '],History:['intelligence','History '],Insight:['wisdom','Insight'],Intimidation:['charisma','Intimidation'],Investigation:['intelligence','Investigation '],Medicine:['wisdom','Medicine'],Nature:['intelligence','Nature'],Perception:['wisdom','Perception '],Performance:['charisma','Performance'],Persuasion:['charisma','Persuasion'],Religion:['intelligence','Religion'], 'Sleight of Hand':['dexterity','SleightofHand'],Stealth:['dexterity','Stealth '],Survival:['wisdom','Survival']};
-  for(const [skill,[ability,field]] of Object.entries(skills)){const trained=(prof.skills||[]).some(x=>String(x).toLowerCase()===skill.toLowerCase());const expertise=Object.values(c.classFeatures?.choices||{}).flat().some(x=>String(x).toLowerCase()===skill.toLowerCase());fill(field,signed(mod(scores[ability])+(expertise?4:trained?2:0)));}
+  for(const [skill,[ability,field]] of Object.entries(skills)){const trained=(prof.skills||[]).some(x=>String(x).toLowerCase()===skill.toLowerCase());const expertise=Object.values(c.classFeatures?.choices||{}).flat().some(x=>String(x).toLowerCase()===skill.toLowerCase());fill(field,signed(mod(scores[ability])+(expertise?4:trained?(c.proficiencyBonus||((c.level||1)>=5?3:2)):0)));}
   // Official 2014 three-page form: checkboxes 11–22 are the six saves,
   // and 23–40 are the 18 skills in printed order (top to bottom).
   const saveOrder=['strength','dexterity','constitution','intelligence','wisdom','charisma'];
@@ -1556,9 +1576,9 @@ async function exportCharacterPdf(){
   const savingThrowPdfFields=['Check Box 11','Check Box 18','Check Box 19','Check Box 20','Check Box 21','Check Box 22'];
   saveOrder.forEach((ability,i)=>check(savingThrowPdfFields[i],(prof.savingThrows||[]).some(x=>String(x).trim().toLowerCase()===ability)));
   Object.keys(skills).forEach((skill,i)=>check('Check Box '+(i+23),(prof.skills||[]).some(x=>String(x).trim().toLowerCase()===skill.toLowerCase())));
-  fill('Passive',10+mod(scores.wisdom)+((prof.skills||[]).some(x=>String(x).toLowerCase()==='perception')?2:0));
+  fill('Passive',10+mod(scores.wisdom)+((prof.skills||[]).some(x=>String(x).toLowerCase()==='perception')?(c.proficiencyBonus||((c.level||1)>=5?3:2)):0));
   const hd={Barbarian:12,Fighter:10,Paladin:10,Ranger:10,Monk:8,Rogue:8,Bard:8,Cleric:8,Druid:8,Warlock:8,Artificer:8,Sorcerer:6,Wizard:6}[c.class]||8;
-  const hp=Math.max(1,hd+mod(scores.constitution));fill('HPMax',hp);fill('HPCurrent',hp);fill('HDTotal','1');fill('HD','1d'+hd);
+  const hp=Number(c.maxHitPoints??Math.max(1,hd+mod(scores.constitution)));fill('HPMax',hp);fill('HPCurrent',hp);fill('HDTotal',String(c.level||1));fill('HD',(c.level||1)+'d'+hd);
   // Starting coins are stored as equipment entries (e.g. '15 gp'). Sum
   // class kit and background coins without treating other item quantities as money.
   const coins={cp:0,sp:0,ep:0,gp:0,pp:0};
@@ -1575,20 +1595,243 @@ async function exportCharacterPdf(){
   attacks.slice(0,3).forEach((w,i)=>{const [name,bonus,damage]=pdfWeaponFields[i];fill(name,w.name);fill(bonus,signed(w.attackBonus));fill(damage,w.damage)});
   fill('AttacksSpellcasting',attacks.map(w=>w.name+' | '+signed(w.attackBonus)+' to hit | '+w.damage+' | '+w.notes).join('\n'));
   fill('Equipment',items.join('\n'));fill('ProficienciesLang',['Armor: '+(prof.armor||[]).join(', '),'Weapons: '+(prof.weapons||[]).join(', '),'Tools: '+(prof.tools||[]).join(', '),'Languages: '+(prof.languages||[]).join(', ')].join('\n'));
-  const feats=c.classFeatures||{};fill('Features and Traits',[...(feats.automatic||[]),...Object.entries(feats.choices||{}).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v))].join('\n'));
+  const feats=c.classFeatures||{};fill('Features and Traits',[...(feats.automatic||[]),...Object.entries(feats.choices||{}).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v)),...(c.subclass?['Subclass: '+c.subclass]:[])].join('\n'));
   fill('CharacterName 2',c.characterName||'');fill('CharacterName',c.characterName||'');fill('Feat+Traits',(feats.automatic||[]).join('\n'));
-  if(sp.castingAbility){fill('Spellcasting Class 2',c.class);fill('SpellcastingAbility 2',sp.castingAbility.toUpperCase());const casting=mod(scores[sp.castingAbility]);fill('SpellSaveDC  2',8+2+casting);fill('SpellAtkBonus 2',signed(2+casting));}
+  if(sp.castingAbility){fill('Spellcasting Class 2',c.class);fill('SpellcastingAbility 2',sp.castingAbility.toUpperCase());const casting=mod(scores[sp.castingAbility]);const proficiency=Number(c.proficiencyBonus||((c.level||1)>=5?3:2));fill('SpellSaveDC  2',8+proficiency+casting);fill('SpellAtkBonus 2',signed(proficiency+casting));}
   const cantrips=[...(sp.cantrips||[]),...(sp.domainCantrips||[])];const first=sp.level1||[];
   // 2014 form uses "Spells 1014" through "Spells 1022" for cantrips; "Spells 1023" onward for level one.
   cantrips.slice(0,9).forEach((x,i)=>fill('Spells 10'+(14+i),x));first.slice(0,12).forEach((x,i)=>fill('Spells 10'+(23+i),x));
-  const slots={Bard:2,Cleric:2,Druid:2,Sorcerer:2,Wizard:2,Warlock:1,Artificer:2}[c.class]||0;
-  if(slots){fill('SlotsTotal 19',slots);fill('SlotsRemaining 19',slots)}
+  const slotCounts=sp.spellSlots||[];const firstSlots=slotCounts.length?slotCounts[0]:({Bard:2,Cleric:2,Druid:2,Sorcerer:2,Wizard:2,Warlock:1,Artificer:2}[c.class]||0);
+  if(firstSlots){fill('SlotsTotal 19',firstSlots);fill('SlotsRemaining 19',firstSlots)}
   // Preserve form fields for editing after download; no flatten().
   const bytes=await pdf.save();const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));const a=document.createElement('a');a.href=url;a.download='chronicles-character-fillable.pdf';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
  }catch(err){console.error(err);alert('Could not export the PDF: '+err.message+'\n\nThe PDF template is bundled in the HTML. An internet connection is needed to load the PDF processing library.');}
  finally{button.disabled=false;button.textContent=old;}
 }
 document.getElementById('exportPdf').addEventListener('click',exportCharacterPdf);
+</script>
+<style>
+#chroniclesLevelWizard[hidden]{display:none!important}
+.level-body{display:grid;gap:15px;color:#f1e8ed}.level-body h3{color:#e7c58f;font:600 17px Cinzel,serif;margin:8px 0 0}.level-body p{line-height:1.65;margin:0}.level-body small{color:#b9a9c2}.level-field{display:grid;gap:7px;color:#dfc8e8;font-weight:600}.level-field input,.level-field select,.level-field textarea{width:100%;box-sizing:border-box;border:1px solid #78638c;background:#17131e;color:#fff;border-radius:7px;padding:12px;font:inherit}.level-spell-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:8px;max-height:290px;overflow:auto}.level-spell-grid label{border:1px solid #52445f;border-radius:6px;padding:9px;background:#211b29;font-size:13px}.level-spell-grid input{accent-color:#a879d4}#chroniclesLevelWizard button{cursor:pointer}#chroniclesLevelWizard button:disabled{opacity:.4;cursor:not-allowed}
+</style>
+<style>.chronicles-level-feature{padding:11px 14px;margin:9px 0;border:1px solid rgba(173,144,205,.28);border-radius:9px;background:rgba(119,83,149,.09)}.chronicles-level-feature strong{display:block;margin-bottom:5px}.chronicles-level-feature p,.chronicles-choice-description{margin:0;line-height:1.5;font-size:.91rem;opacity:.85}.chronicles-choice-description{margin:7px 0 14px;padding-left:9px;border-left:2px solid rgba(173,144,205,.5)}</style>
+<script>/* Chronicles: incremental 1–5 leveling. Drafts never mutate the committed character. */
+(function(){
+ const $=id=>document.getElementById(id), clone=x=>JSON.parse(JSON.stringify(x));
+ const dice={Barbarian:12,Fighter:10,Paladin:10,Ranger:10,Monk:8,Rogue:8,Bard:8,Cleric:8,Druid:8,Warlock:8,Artificer:8,Sorcerer:6,Wizard:6};
+ const features={
+ Barbarian:{2:['Reckless Attack','Danger Sense'],3:['Primal Path','Rage (3 uses)'],4:['Ability Score Improvement'],5:['Extra Attack','Fast Movement','Rage damage +2']},
+ Bard:{2:['Jack of All Trades','Song of Rest (d6)'],3:['Bard College','Expertise (two skills)'],4:['Ability Score Improvement'],5:['Bardic Inspiration (d8)','Font of Inspiration']},
+ Cleric:{2:['Channel Divinity (1/rest)','Turn Undead','Divine Domain feature'],3:[],4:['Ability Score Improvement'],5:['Destroy Undead (CR 1/2)']},
+ Druid:{2:['Wild Shape (CR 1/4)','Druid Circle'],3:[],4:['Ability Score Improvement','Wild Shape (CR 1/2)'],5:[]},
+ Fighter:{2:['Action Surge (1/rest)'],3:['Martial Archetype'],4:['Ability Score Improvement'],5:['Extra Attack']},
+ Monk:{2:['Ki (2 points)','Unarmored Movement (+10 ft)'],3:['Monastic Tradition','Deflect Missiles'],4:['Ability Score Improvement','Slow Fall'],5:['Extra Attack','Stunning Strike','Martial Arts die (d6)']},
+ Paladin:{2:['Fighting Style','Spellcasting','Divine Smite'],3:['Divine Health','Sacred Oath','Channel Divinity'],4:['Ability Score Improvement'],5:['Extra Attack']},
+ Ranger:{2:['Fighting Style','Spellcasting'],3:['Ranger Archetype','Primeval Awareness'],4:['Ability Score Improvement'],5:['Extra Attack']},
+ Rogue:{2:['Cunning Action'],3:['Roguish Archetype','Sneak Attack (2d6)'],4:['Ability Score Improvement'],5:['Uncanny Dodge','Sneak Attack (3d6)']},
+ Sorcerer:{2:['Font of Magic (2 sorcery points)'],3:['Metamagic (choose two)','Sorcery points (3)'],4:['Ability Score Improvement','Sorcery points (4)'],5:['Sorcery points (5)']},
+ Warlock:{2:['Eldritch Invocations (choose two)'],3:['Pact Boon'],4:['Ability Score Improvement'],5:['Additional Eldritch Invocation (3 total)']},
+ Wizard:{2:['Arcane Tradition'],3:[],4:['Ability Score Improvement'],5:[]},
+ Artificer:{2:['Infuse Item (4 infusions known; 2 infused items)'],3:['Artificer Specialist','The Right Tool for the Job'],4:['Ability Score Improvement'],5:['Specialist feature']}
+ };
+ // Names only in this first pass. Detailed subclass mechanics and optional feats follow in a later pass.
+ const subclasses={Barbarian:['Path of the Berserker','Path of the Totem Warrior'],Bard:['College of Lore','College of Valor'],Cleric:[],Druid:['Circle of the Land','Circle of the Moon'],Fighter:['Champion','Battle Master','Eldritch Knight'],Monk:['Way of the Open Hand','Way of Shadow','Way of the Four Elements'],Paladin:['Oath of Devotion','Oath of the Ancients','Oath of Vengeance'],Ranger:['Hunter','Beast Master'],Rogue:['Thief','Assassin','Arcane Trickster'],Sorcerer:[],Warlock:[],Wizard:['School of Abjuration','School of Conjuration','School of Divination','School of Enchantment','School of Evocation','School of Illusion','School of Necromancy','School of Transmutation'],Artificer:['Alchemist','Armorer','Artillerist','Battle Smith']};
+ const extra={Fighter:{3:{'Champion':['Improved Critical'],'Battle Master':['Combat Superiority (4d8)','Student of War'],'Eldritch Knight':['Spellcasting','Weapon Bond']}},Rogue:{3:{'Thief':['Fast Hands','Second-Story Work'],'Assassin':['Bonus Proficiencies','Assassinate'],'Arcane Trickster':['Spellcasting','Mage Hand Legerdemain']}},Druid:{2:{'Circle of the Land':['Bonus Cantrip','Natural Recovery'],'Circle of the Moon':['Combat Wild Shape','Circle Forms']}},Barbarian:{3:{'Path of the Berserker':['Frenzy'],'Path of the Totem Warrior':['Totem Spirit']}},Bard:{3:{'College of Lore':['Bonus Proficiencies','Cutting Words'],'College of Valor':['Bonus Proficiencies','Combat Inspiration']}},Ranger:{3:{'Hunter':['Hunter’s Prey'],'Beast Master':['Ranger’s Companion']}},Wizard:{2:{}},Monk:{3:{'Way of the Open Hand':['Open Hand Technique'],'Way of Shadow':['Shadow Arts'],'Way of the Four Elements':['Disciple of the Elements']}},Paladin:{3:{'Oath of Devotion':['Sacred Weapon','Turn the Unholy'],'Oath of the Ancients':['Nature’s Wrath','Turn the Faithless'],'Oath of Vengeance':['Abjure Enemy','Vow of Enmity']}}};
+ const slots={full:[[0,0,0],[2,0,0],[3,0,0],[4,2,0],[4,3,0],[4,3,2]],half:[[0,0,0],[0,0,0],[2,0,0],[3,0,0],[3,0,0],[4,2,0]],warlock:[[0,0,0],[1,0,0],[2,0,0],[0,2,0],[0,2,0],[0,0,2]],artificer:[[0,0,0],[2,0,0],[2,0,0],[3,0,0],[3,0,0],[4,2,0]]};
+ const full=['Bard','Cleric','Druid','Sorcerer','Wizard'];
+ const mode=cls=>full.includes(cls)?'full':cls==='Warlock'?'warlock':cls==='Artificer'?'artificer':['Paladin','Ranger'].includes(cls)?'half':null;
+ const spellKnown={Bard:[0,4,5,6,7,8],Sorcerer:[0,2,3,4,5,6],Warlock:[0,2,3,4,5,6],Ranger:[0,0,2,3,3,4]};
+ const cantrips={Bard:[0,2,2,2,3,3],Cleric:[0,3,3,3,4,4],Druid:[0,2,2,2,3,3],Sorcerer:[0,4,4,4,5,5],Warlock:[0,2,2,2,3,3],Wizard:[0,3,3,3,4,4],Artificer:[0,2,2,2,2,2]};
+ const spells2={Bard:['Aid','Animal Messenger','Blindness/Deafness','Calm Emotions','Cloud of Daggers','Detect Thoughts','Enhance Ability','Enthrall','Heat Metal','Hold Person','Invisibility','Knock','Lesser Restoration','Locate Animals or Plants','Locate Object','Magic Mouth','Phantasmal Force','See Invisibility','Shatter','Silence','Suggestion','Zone of Truth'],Cleric:['Aid','Augury','Blindness/Deafness','Calm Emotions','Continual Flame','Enhance Ability','Find Traps','Gentle Repose','Hold Person','Lesser Restoration','Locate Object','Prayer of Healing','Protection from Poison','Silence','Spiritual Weapon','Warding Bond','Zone of Truth'],Druid:['Animal Messenger','Barkskin','Beast Sense','Darkvision','Enhance Ability','Find Traps','Flame Blade','Flaming Sphere','Gust of Wind','Heat Metal','Hold Person','Lesser Restoration','Locate Animals or Plants','Locate Object','Moonbeam','Pass without Trace','Protection from Poison','Spike Growth'],Sorcerer:['Alter Self','Blindness/Deafness','Blur','Cloud of Daggers','Crown of Madness','Darkness','Darkvision','Detect Thoughts','Enhance Ability','Enlarge/Reduce','Gust of Wind','Hold Person','Invisibility','Knock','Levitate','Mirror Image','Misty Step','Phantasmal Force','Scorching Ray','See Invisibility','Shatter','Spider Climb','Suggestion','Web'],Warlock:['Cloud of Daggers','Crown of Madness','Darkness','Enthrall','Hold Person','Invisibility','Mirror Image','Misty Step','Ray of Enfeeblement','Shatter','Spider Climb','Suggestion'],Wizard:['Alter Self','Arcane Lock','Blindness/Deafness','Blur','Cloud of Daggers','Continual Flame','Crown of Madness','Darkness','Darkvision','Detect Thoughts','Enlarge/Reduce','Flaming Sphere','Gentle Repose','Gust of Wind','Hold Person','Invisibility','Knock','Levitate','Locate Object','Magic Mouth','Magic Weapon','Melf’s Acid Arrow','Mirror Image','Misty Step','Nystul’s Magic Aura','Phantasmal Force','Ray of Enfeeblement','Rope Trick','Scorching Ray','See Invisibility','Shatter','Spider Climb','Suggestion','Web'],Paladin:['Aid','Branding Smite','Find Steed','Lesser Restoration','Locate Object','Magic Weapon','Protection from Poison','Zone of Truth'],Ranger:['Animal Messenger','Barkskin','Beast Sense','Cordon of Arrows','Darkvision','Find Traps','Lesser Restoration','Locate Animals or Plants','Locate Object','Pass without Trace','Protection from Poison','Silence','Spike Growth'],Artificer:['Aid','Alter Self','Arcane Lock','Blur','Continual Flame','Darkvision','Enhance Ability','Enlarge/Reduce','Heat Metal','Invisibility','Lesser Restoration','Levitate','Magic Mouth','Magic Weapon','Protection from Poison','Pyrotechnics','Rope Trick','See Invisibility','Skywrite','Spider Climb','Web']};
+ const spells3={Bard:['Bestow Curse','Clairvoyance','Dispel Magic','Fear','Feign Death','Glyph of Warding','Hypnotic Pattern','Leomund’s Tiny Hut','Major Image','Nondetection','Plant Growth','Sending','Speak with Dead','Speak with Plants','Stinking Cloud','Tongues'],Cleric:['Animate Dead','Beacon of Hope','Bestow Curse','Clairvoyance','Create Food and Water','Daylight','Dispel Magic','Feign Death','Glyph of Warding','Magic Circle','Mass Healing Word','Meld into Stone','Protection from Energy','Remove Curse','Revivify','Sending','Speak with Dead','Spirit Guardians','Tongues','Water Walk'],Druid:['Call Lightning','Conjure Animals','Daylight','Dispel Magic','Feign Death','Meld into Stone','Plant Growth','Protection from Energy','Sleet Storm','Speak with Plants','Water Breathing','Water Walk','Wind Wall'],Sorcerer:['Blink','Clairvoyance','Counterspell','Daylight','Dispel Magic','Fear','Fireball','Fly','Gaseous Form','Haste','Hypnotic Pattern','Lightning Bolt','Major Image','Protection from Energy','Sleet Storm','Slow','Stinking Cloud','Tongues','Water Breathing'],Warlock:['Counterspell','Dispel Magic','Fear','Fly','Gaseous Form','Hunger of Hadar','Hypnotic Pattern','Magic Circle','Major Image','Remove Curse','Tongues','Vampiric Touch'],Wizard:['Animate Dead','Bestow Curse','Blink','Clairvoyance','Counterspell','Dispel Magic','Fear','Feign Death','Fireball','Fly','Gaseous Form','Glyph of Warding','Haste','Hypnotic Pattern','Leomund’s Tiny Hut','Lightning Bolt','Magic Circle','Major Image','Nondetection','Phantom Steed','Protection from Energy','Remove Curse','Sending','Sleet Storm','Slow','Stinking Cloud','Tongues','Vampiric Touch','Water Breathing']};
+ let draft=null, page=0, base=null;
+ const root=$('chroniclesLevelWizard'), body=$('chroniclesLevelBody'), msg=$('chroniclesLevelMessage');
+ const val=(c,k)=>Number(c.finalAbilityScores?.[k]??10), mod=(c,k)=>Math.floor((val(c,k)-10)/2);
+ const current=()=>JSON.parse(sessionStorage.getItem('dndCharacter')||'{}');
+ const writeDraft=()=>{if(draft)try{sessionStorage.setItem('chroniclesLevelUpDraft',JSON.stringify({draft,baseKey:JSON.stringify(base),page}))}catch{}};
+ function start(){const c=current(),lv=Number(c.level||1);if(!c.class||!dice[c.class]){alert('This class is not supported by the level-up wizard.');return}if(lv>=5){alert('Chronicles currently supports levels 1–5.');return}base=c;const saved=(()=>{try{return JSON.parse(sessionStorage.getItem('chroniclesLevelUpDraft')||'null')}catch{return null}})();if(saved&&saved.baseKey===JSON.stringify(base)&&confirm('Resume your unfinished level-up?')){draft=saved.draft;page=saved.page||0}else{draft={level:lv+1,hpRoll:null,hpMethod:'roll',features:[...(features[c.class]?.[lv+1]||[])],choices:{},asi:{},spells:{cantrips:[],level1:[],level2:[],level3:[]}};page=0}open();}
+ function open(){document.querySelectorAll('#classPage,#abilityPage,#backgroundPage,#proficiencyPage,#futurePage,#equipmentPage,#identityPage,#summaryPage').forEach(x=>x.hidden=true);$('chroniclesManager').hidden=true;$('chroniclesWelcome').hidden=true;document.querySelector('.topbar').style.display='none';root.hidden=false;render();window.scrollTo(0,0)}
+ function leave(){writeDraft();root.hidden=true;$('chroniclesManager').hidden=false;window.chroniclesRefreshManager?.();window.scrollTo(0,0)}
+ function field(label,input){const wrap=document.createElement('label');wrap.className='level-field';const span=document.createElement('span');span.textContent=label;wrap.append(span,input);return wrap}
+ function makeSelect(options,value,onchange){const s=document.createElement('select');options.forEach(([v,label])=>{const o=document.createElement('option');o.value=v;o.textContent=label;s.append(o)});s.value=value||options[0]?.[0];s.onchange=()=>{onchange(s.value);writeDraft()};return s}
+ function text(t,tag='p'){const e=document.createElement(tag);e.textContent=t;body.append(e);return e}
+ const choiceDescriptions={
+ 'Champion':'A straightforward martial archetype focused on improved critical hits and athletic prowess.',
+ 'Battle Master':'Use superiority dice and maneuvers to control the battlefield.',
+ 'Eldritch Knight':'Blend fighter training with limited wizard spellcasting.',
+ 'Path of the Berserker':'Enter a frenzy for extra attacks while raging, at the cost of exhaustion.',
+ 'Path of the Totem Warrior':'Draw spiritual powers from an animal totem.',
+ 'College of Lore':'Gain extra skills and use Cutting Words to hinder enemies.',
+ 'College of Valor':'Gain martial training and inspire allies in combat.',
+ 'Circle of the Land':'Gain extra magic and recover spell slots through Natural Recovery.',
+ 'Circle of the Moon':'Specialize in stronger, faster Wild Shape transformations.',
+ 'Thief':'Excel at quick object use, climbing, and mobility.',
+ 'Assassin':'Specialize in infiltration and devastating attacks against surprised foes.',
+ 'Arcane Trickster':'Learn illusion and enchantment magic alongside rogue abilities.',
+ 'Hunter':'Choose techniques for fighting powerful enemies or groups.',
+ 'Beast Master':'Gain an animal companion that fights alongside you.',
+ 'Way of the Open Hand':'Manipulate foes with enhanced Flurry of Blows strikes.',
+ 'Way of Shadow':'Use ki for stealth and shadow-themed magic.',
+ 'Way of the Four Elements':'Spend ki on elemental disciplines.',
+ 'Oath of Devotion':'Uphold honor and justice with sacred weapon and turning powers.',
+ 'Oath of the Ancients':'Protect light and life using nature-themed divine powers.',
+ 'Oath of Vengeance':'Hunt a sworn foe with focused offensive Channel Divinity.',
+ 'Pact of the Chain':'Gain an enhanced familiar through find familiar.',
+ 'Pact of the Blade':'Conjure a magical pact weapon.',
+ 'Pact of the Tome':'Receive a Book of Shadows with three additional cantrips.',
+ 'Defense':'Gain +1 AC while wearing armor.',
+ 'Dueling':'Gain +2 damage with a one-handed melee weapon when wielding no other weapons.',
+ 'Great Weapon Fighting':'Reroll 1s and 2s on eligible two-handed melee weapon damage dice.',
+ 'Protection':'Use your reaction and shield to impose disadvantage on an attack against a nearby ally.',
+ 'Archery':'Gain +2 to attack rolls with ranged weapons.',
+ 'Two-Weapon Fighting':'Add your ability modifier to the damage of the second attack.',
+ 'Careful Spell':'Protect chosen creatures from some of your spell’s saving throw effects.',
+ 'Distant Spell':'Increase a spell’s range by spending sorcery points.',
+ 'Empowered Spell':'Reroll a number of spell damage dice using sorcery points.',
+ 'Extended Spell':'Double the duration of an eligible spell.',
+ 'Heightened Spell':'Impose disadvantage on one target’s first save against your spell.',
+ 'Quickened Spell':'Cast an eligible one-action spell as a bonus action.',
+ 'Subtle Spell':'Cast a spell without verbal or somatic components.',
+ 'Twinned Spell':'Target a second creature with an eligible single-target spell.'
+ };
+ function addChoice(title,options,key){const s=makeSelect([['','Choose an option…'],...options.map(x=>[x,x])],draft.choices[key]||'',v=>{draft.choices[key]=v;render()});body.append(field(title,s));if(draft.choices[key]){const d=document.createElement('p');d.className='chronicles-choice-description';d.textContent=choiceDescriptions[draft.choices[key]]||'This choice grants specialized abilities; see its class rules for the full details.';body.append(d)}}
+ function hp(){const die=dice[base.class],con=mod(base,'constitution');text(`Level ${draft.level} · d${die} + Constitution modifier (${con>=0?'+':''}${con}). Minimum gain: 1 HP.`);body.append(field('Hit point method',makeSelect([['roll','Roll the hit die'],['manual','Enter the die result']],draft.hpMethod,v=>{draft.hpMethod=v;draft.hpRoll=null;render()})));if(draft.hpMethod==='roll'){const b=document.createElement('button');b.textContent='🎲 ROLL d'+die;b.onclick=()=>{draft.hpRoll=1+Math.floor(Math.random()*die);render()};body.append(b)}else{const i=document.createElement('input');i.type='number';i.min='1';i.max=String(die);i.value=draft.hpRoll??'';i.oninput=()=>{draft.hpRoll=i.value===''?null:Number(i.value);writeDraft()};body.append(field('Die result (1–'+die+')',i))}if(draft.hpRoll!==null)text(`Die result: ${draft.hpRoll} · HP gained: ${Math.max(1,Number(draft.hpRoll)+con)}`)}
+ const featureDescriptions={
+ 'Reckless Attack':'On your first attack each turn, gain advantage on Strength melee attacks; attacks against you gain advantage until your next turn.',
+ 'Danger Sense':'Gain advantage on Dexterity saves against effects you can see, provided you are not blinded, deafened, or incapacitated.',
+ 'Primal Path':'Choose a barbarian path that grants specialized rage abilities.',
+ 'Rage (3 uses)':'You can enter a rage three times between long rests.',
+ 'Extra Attack':'When you take the Attack action, attack twice instead of once.',
+ 'Fast Movement':'Your speed increases by 10 feet while not wearing heavy armor.',
+ 'Rage damage +2':'Your rage bonus damage is +2 on eligible Strength melee attacks.',
+ 'Jack of All Trades':'Add half your proficiency bonus, rounded down, to ability checks that do not already include your proficiency bonus.',
+ 'Song of Rest (d6)':'During a short rest, allies who spend Hit Dice regain an extra d6 hit points.',
+ 'Bard College':'Choose a bard college to shape your specialized abilities.',
+ 'Expertise (two skills)':'Choose two proficient skills; double your proficiency bonus on checks with them.',
+ 'Bardic Inspiration (d8)':'Your Bardic Inspiration die increases to a d8.',
+ 'Font of Inspiration':'Recover all uses of Bardic Inspiration after a short or long rest.',
+ 'Channel Divinity (1/rest)':'Channel divine power once between short or long rests; available effects depend on your domain.',
+ 'Turn Undead':'Use Channel Divinity to force nearby undead that can see or hear you to flee on a failed Wisdom save.',
+ 'Divine Domain feature':'Gain the level-two feature associated with your chosen divine domain.',
+ 'Destroy Undead (CR 1/2)':'Undead of CR 1/2 or lower that fail your Turn Undead save are destroyed.',
+ 'Wild Shape (CR 1/4)':'Transform into a beast you have seen, subject to CR and movement restrictions; regain uses on a short or long rest.',
+ 'Druid Circle':'Choose a druid circle and gain its specialized features.',
+ 'Wild Shape (CR 1/2)':'You may transform into beasts of CR 1/2 or lower, subject to Wild Shape restrictions.',
+ 'Action Surge (1/rest)':'Take one additional action on your turn, once per short or long rest.',
+ 'Martial Archetype':'Choose a fighter archetype that grants new combat abilities.',
+ 'Ki (2 points)':'Gain 2 ki points for Flurry of Blows, Patient Defense, and Step of the Wind; recover them after a qualifying rest.',
+ 'Unarmored Movement (+10 ft)':'Gain 10 feet of movement while not wearing armor or wielding a shield.',
+ 'Monastic Tradition':'Choose a monastic tradition and gain its special techniques.',
+ 'Deflect Missiles':'Use your reaction to reduce ranged weapon damage; you may throw the missile back by spending ki.',
+ 'Slow Fall':'Use your reaction to reduce falling damage by five times your monk level.',
+ 'Stunning Strike':'Spend 1 ki when you hit with a melee weapon attack to force a Constitution save or stun the target.',
+ 'Martial Arts die (d6)':'Your Martial Arts damage die becomes a d6.',
+ 'Fighting Style':'Choose a fighting style that provides a lasting combat benefit.',
+ 'Spellcasting':'Gain spellcasting according to your class spell list and progression.',
+ 'Divine Smite':'Expend a spell slot when you hit with a melee weapon attack to deal extra radiant damage.',
+ 'Divine Health':'You are immune to disease.',
+ 'Sacred Oath':'Choose a sacred oath and gain its oath spells and Channel Divinity options.',
+ 'Primeval Awareness':'Spend a spell slot to sense certain creature types in the surrounding area.',
+ 'Ranger Archetype':'Choose a ranger archetype and gain its special abilities.',
+ 'Cunning Action':'Take Dash, Disengage, or Hide as a bonus action on each of your turns.',
+ 'Roguish Archetype':'Choose a rogue archetype that grants specialized skills.',
+ 'Sneak Attack (2d6)':'Your Sneak Attack damage increases to 2d6 once per turn when its conditions are met.',
+ 'Sneak Attack (3d6)':'Your Sneak Attack damage increases to 3d6 once per turn when its conditions are met.',
+ 'Uncanny Dodge':'Use your reaction to halve damage from an attack by an attacker you can see.',
+ 'Font of Magic (2 sorcery points)':'Gain 2 sorcery points, which you can convert to or from spell slots using Flexible Casting.',
+ 'Metamagic (choose two)':'Choose two Metamagic options to modify spells by spending sorcery points.',
+ 'Sorcery points (3)':'Your sorcery point maximum increases to 3.',
+ 'Sorcery points (4)':'Your sorcery point maximum increases to 4.',
+ 'Sorcery points (5)':'Your sorcery point maximum increases to 5.',
+ 'Eldritch Invocations (choose two)':'Choose two invocations that grant magical abilities; some have prerequisites.',
+ 'Pact Boon':'Choose Pact of the Chain, Blade, or Tome to gain a special pact gift.',
+ 'Additional Eldritch Invocation (3 total)':'Your number of known eldritch invocations increases to three.',
+ 'Arcane Tradition':'Choose a wizard school and gain its school-specific features.',
+ 'Ability Score Improvement':'Increase one ability by 2 or two abilities by 1 each, to a maximum of 20.',
+ 'Infuse Item (4 infusions known; 2 infused items)':'Learn four artificer infusions and maintain up to two infused items at once.',
+ 'Artificer Specialist':'Choose an artificer specialty and gain its specialist abilities.',
+ 'The Right Tool for the Job':'Create one set of artisan tools with thieves’ or artisan tools during a short rest.',
+ 'Specialist feature':'Gain the fifth-level feature from your artificer specialty.',
+ 'Improved Critical':'Your weapon attacks score a critical hit on a roll of 19 or 20.',
+ 'Combat Superiority (4d8)':'Gain four d8 superiority dice and learn Battle Master maneuvers.',
+ 'Student of War':'Gain proficiency with one type of artisan tools.',
+ 'Weapon Bond':'Bond with up to two weapons, making them difficult to disarm and allowing you to summon them.',
+ 'Fast Hands':'Use Cunning Action for Sleight of Hand, thieves’ tools, or Use an Object.',
+ 'Second-Story Work':'Climb at normal speed and jump farther with a running start.',
+ 'Bonus Proficiencies':'Gain the additional proficiencies granted by your chosen subclass.',
+ 'Assassinate':'Gain advantage against creatures that have not acted; hits on surprised creatures are critical hits.',
+ 'Mage Hand Legerdemain':'Use an invisible mage hand for extra tasks such as manipulating objects and thieves’ tools.',
+ 'Bonus Cantrip':'Learn one additional druid cantrip.',
+ 'Natural Recovery':'Recover some expended spell slots during a short rest, once per long rest.',
+ 'Combat Wild Shape':'Use Wild Shape as a bonus action and spend spell slots to heal while transformed.',
+ 'Circle Forms':'Wild Shape into stronger beasts using Circle of the Moon limits.',
+ 'Frenzy':'While raging, make a melee weapon attack as a bonus action; suffer exhaustion when the rage ends.',
+ 'Totem Spirit':'Choose a totem animal that grants a special benefit while raging.',
+ 'Cutting Words':'Spend Bardic Inspiration as a reaction to reduce a creature’s attack, damage, or ability check.',
+ 'Combat Inspiration':'Allies can add Bardic Inspiration to weapon damage or Armor Class against an attack.',
+ 'Hunter’s Prey':'Choose Colossus Slayer, Giant Killer, or Horde Breaker.',
+ 'Ranger’s Companion':'Gain a beast companion that follows your commands under Beast Master rules.',
+ 'Open Hand Technique':'Add a special effect to hits made with Flurry of Blows.',
+ 'Shadow Arts':'Spend ki to cast selected shadow-related spells and gain minor illusion.',
+ 'Disciple of the Elements':'Learn elemental disciplines that use ki points.',
+ 'Sacred Weapon':'Use Channel Divinity to add Charisma to weapon attack rolls and make the weapon magical for 1 minute.',
+ 'Turn the Unholy':'Use Channel Divinity to turn fiends and undead.',
+ 'Nature’s Wrath':'Use Channel Divinity to restrain a creature with spectral vines.',
+ 'Turn the Faithless':'Use Channel Divinity to turn fey and fiends.',
+ 'Abjure Enemy':'Use Channel Divinity to frighten and slow a creature.',
+ 'Vow of Enmity':'Use Channel Divinity to gain advantage on attacks against one creature for 1 minute.'
+ };
+ function featureInfo(name){return featureDescriptions[name]||'This feature unlocks at the new level. Consult your class or subclass rules for its full effect.'}
+ function featureEntry(name){const wrap=document.createElement('div');wrap.className='chronicles-level-feature';const heading=document.createElement('strong');heading.textContent='✦ '+name;const detail=document.createElement('p');detail.textContent=featureInfo(name);wrap.append(heading,detail);body.append(wrap)}
+ function featurePage(){const c=base.class,lv=draft.level;text('New class features at this level:');(draft.features.length?draft.features:['No new class features at this level.']).forEach(featureEntry);const options=subclasses[c]||[];if(options.length&&((['Druid','Wizard'].includes(c)&&lv===2)||(!['Druid','Wizard'].includes(c)&&lv===3)))addChoice('Subclass / tradition',options,'subclass');if(draft.choices.subclass){const bonus=extra[c]?.[lv]?.[draft.choices.subclass]||[];if(bonus.length){text('Features from your chosen subclass:');bonus.forEach(featureEntry)}}if(c==='Paladin'&&lv===2||c==='Ranger'&&lv===2)addChoice('Fighting style',c==='Paladin'?['Defense','Dueling','Great Weapon Fighting','Protection']:['Archery','Defense','Dueling','Two-Weapon Fighting'],'fightingStyle');if(c==='Warlock'&&lv===3)addChoice('Pact boon',['Pact of the Chain','Pact of the Blade','Pact of the Tome'],'pact');if(c==='Sorcerer'&&lv===3){addChoice('Metamagic option 1',['Careful Spell','Distant Spell','Empowered Spell','Extended Spell','Heightened Spell','Quickened Spell','Subtle Spell','Twinned Spell'],'meta1');addChoice('Metamagic option 2',['Careful Spell','Distant Spell','Empowered Spell','Extended Spell','Heightened Spell','Quickened Spell','Subtle Spell','Twinned Spell'],'meta2')}if(c==='Warlock'&&[2,5].includes(lv))text('Eldritch Invocation selections require their individual prerequisites; record these in the notes below.');if(c==='Fighter'&&lv===3)text('Battle Master maneuvers and Eldritch Knight spell selections can be recorded in the notes below.');if(c==='Monk'&&lv===3)text('Way of the Four Elements disciplines can be recorded in the notes below.');if(c==='Ranger'&&lv===3)text('Hunter features or Beast Master companion details can be recorded in the notes below.');if(c==='Artificer'&&[2,3,5].includes(lv))text('Artificer infusions and specialist choices can be recorded in the notes below.');const notes=document.createElement('textarea');notes.rows=3;notes.placeholder='Optional class feature choices and notes (e.g. invocations, maneuvers, disciplines, expertise)';notes.value=draft.choices.notes||'';notes.oninput=()=>{draft.choices.notes=notes.value;writeDraft()};body.append(field('Feature notes',notes));text('Some subclass-specific mechanics and optional feats are reserved for the next rules expansion.','small')}
+ function asiPage(){text(`Proficiency bonus: +${draft.level>=5?3:2} (automatically updated at level 5).`);if(draft.level!==4){text('Ability Score Improvement is available at level 4. No ability scores change on this level.');return}text('Choose +2 to one ability or +1 to two different abilities (maximum score 20). Feats are planned for the next pass.');body.append(field('Improvement method',makeSelect([['one','+2 to one ability'],['two','+1 to two abilities']],draft.asi.method||'one',v=>{draft.asi={method:v};render()})));const names=['strength','dexterity','constitution','intelligence','wisdom','charisma'];const choices=[['','Choose ability…'],...names.map(x=>[x,x[0].toUpperCase()+x.slice(1)+' ('+val(base,x)+')'])];body.append(field('First ability',makeSelect(choices,draft.asi.first||'',v=>{draft.asi.first=v;render()})));if(draft.asi.method==='two')body.append(field('Second ability',makeSelect(choices,draft.asi.second||'',v=>{draft.asi.second=v;render()})))}
+ function spellPage(){
+  const cls=base.class,lv=draft.level,kind=mode(cls),prior=base.spells||{};
+  const ability=prior.castingAbility||({Bard:'charisma',Cleric:'wisdom',Druid:'wisdom',Paladin:'charisma',Ranger:'wisdom',Sorcerer:'charisma',Warlock:'charisma',Wizard:'intelligence',Artificer:'intelligence'}[cls]||null);
+  if(!kind){text('No standard spellcasting progression for this class at this level.');return}
+  const score=ability?val(base,ability)+(lv===4?(draft.asi.method==='two'?(draft.asi.first===ability||draft.asi.second===ability?1:0):(draft.asi.first===ability?2:0)):0):0;
+  const castingMod=ability?Math.floor((score-10)/2):0, prof=lv>=5?3:2,slot=slots[kind][lv];
+  const stat=document.createElement('div');stat.className='feature-metadata';
+  [['Casting ability',ability?ability[0].toUpperCase()+ability.slice(1):'None'],['Spell attack',ability?(prof+castingMod>=0?'+':'')+(prof+castingMod):'—'],['Spell save DC',ability?8+prof+castingMod:'—'],['Proficiency','+'+prof],['Spell slots',slot.map((n,i)=>n?`${n} × ${i+1}${i===0?'st':i===1?'nd':'rd'}`:null).filter(Boolean).join(' · ')||'None']].forEach(([k,v])=>{const e=document.createElement('span');e.textContent=k+': '+v;stat.append(e)});body.append(stat);
+  if(kind==='warlock')text('Pact Magic slots recover on a short rest and are always cast at the highest available pact slot level.');
+  const canLimit=Math.max(0,(cantrips[cls]?.[lv]||0)-(prior.cantrips||[]).length);
+  const knownLimit=spellKnown[cls]?.[lv];const priorKnown=['level1','level2','level3'].reduce((n,k)=>n+(prior[k]||[]).length,0);
+  const maxNew=cls==='Wizard'?2:knownLimit!==undefined?Math.max(0,knownLimit-priorKnown):null;
+  if(maxNew===null)text('Prepared caster: these spell choices are optional tracking notes; you can prepare spells from your available class list.');
+  else text(`Choose up to ${maxNew} additional spells${canLimit?' and '+canLimit+' additional cantrip'+(canLimit===1?'':'s'):''}. Previously selected spells remain available.`);
+  const highest=slot[2]?3:slot[1]?2:slot[0]?1:0;
+  const levels=[['cantrips',(typeof spellLists!=='undefined'&&spellLists[cls]?.can)||[],0],['level1',(typeof spellLists!=='undefined'&&spellLists[cls]?.one)||[],1],['level2',spells2[cls]||[],2],['level3',spells3[cls]||[],3]];
+  const count=document.createElement('div');count.className='spell-counter';body.append(count);
+  function updateCount(){const total=['level1','level2','level3'].reduce((n,k)=>n+(draft.spells[k]||[]).length,0);count.textContent=`New spells: ${total}${maxNew===null?' (optional)': ' / '+maxNew} · New cantrips: ${draft.spells.cantrips.length} / ${canLimit}`}
+  updateCount();
+  levels.forEach(([key,names,n])=>{
+   if(n>highest||(n===0&&canLimit===0))return;
+   const heading=document.createElement('h3');heading.className='spell-level';heading.textContent=n===0?'CANTRIPS':`LEVEL ${n} SPELLS`;body.append(heading);
+   const grid=document.createElement('div');grid.className='spell-grid';
+   names.filter(x=>!(prior[key]||[]).includes(x)).forEach(name=>{
+    const info=(typeof spellCatalog!=='undefined'&&spellCatalog[name])||['✧','A magical effect from the class spell list.'];
+    const card=document.createElement('label');card.className='spell-card'+(draft.spells[key].includes(name)?' chosen':'');
+    const input=document.createElement('input');input.type='checkbox';input.checked=draft.spells[key].includes(name);
+    const icon=document.createElement('span');icon.className='spell-icon';icon.textContent=info[0];
+    const title=document.createElement('strong');title.textContent=name;
+    const detail=document.createElement('small');detail.textContent=info[1];card.append(input,icon,title,detail);
+    input.onchange=()=>{
+     const selected=draft.spells[key];if(input.checked){
+      const total=['level1','level2','level3'].reduce((sum,k)=>sum+draft.spells[k].length,0);
+      if(key==='cantrips'&&selected.length>=canLimit||key!=='cantrips'&&maxNew!==null&&total>=maxNew){input.checked=false;return}
+      selected.push(name);card.classList.add('chosen');
+     }else{const i=selected.indexOf(name);if(i>=0)selected.splice(i,1);card.classList.remove('chosen')}
+     writeDraft();updateCount();
+    };grid.append(card)
+   });body.append(grid);
+  });
+  text('Class-specific and subclass-granted spell restrictions may require further choices in a future rules update.','small');
+ }
+ function validate(){if(page===0){const n=Number(draft.hpRoll);if(!Number.isInteger(n)||n<1||n>dice[base.class])return 'Roll or enter a valid hit die result.'}if(page===1){const cls=base.class,lv=draft.level;if(subclasses[cls]?.length&&((['Druid','Wizard'].includes(cls)&&lv===2)||(!['Druid','Wizard'].includes(cls)&&lv===3))&&!draft.choices.subclass)return 'Select a subclass before continuing.';if(['Paladin','Ranger'].includes(cls)&&lv===2&&!draft.choices.fightingStyle)return 'Choose a fighting style.';if(cls==='Warlock'&&lv===3&&!draft.choices.pact)return 'Choose a pact boon.';if(cls==='Sorcerer'&&lv===3&&(!draft.choices.meta1||!draft.choices.meta2||draft.choices.meta1===draft.choices.meta2))return 'Choose two different Metamagic options.'}if(page===2&&draft.level===4){const a=draft.asi;if(!a.first||a.method==='two'&&(!a.second||a.first===a.second))return 'Choose valid ability score improvements.';if(val(base,a.first)+(a.method==='two'?1:2)>20||a.method==='two'&&val(base,a.second)+1>20)return 'Ability scores cannot exceed 20.'}if(page===3){const cls=base.class,lv=draft.level,prior=base.spells||{},s=draft.spells;const cap=(cantrips[cls]?.[lv]||0)-(prior.cantrips||[]).length;if(s.cantrips.length>Math.max(0,cap))return 'Too many new cantrips.';const known=spellKnown[cls]?.[lv];const before=[...(prior.level1||[]),...(prior.level2||[]),...(prior.level3||[])].length;const added=s.level1.length+s.level2.length+s.level3.length;if(known!==undefined&&added>Math.max(0,known-before))return 'Too many known spells for this level.';if(cls==='Wizard'&&added>2)return 'Wizards add two free spells to their spellbook at each level.'}return ''}
+ function commit(){const err=validate();if(err){msg.textContent=err;return}if(JSON.stringify(current())!==JSON.stringify(base)){msg.textContent='The underlying character changed during leveling. Return to Character Management and restart to avoid overwriting changes.';return}const c=clone(base),lv=draft.level,oldCon=mod(c,'constitution');const gain=Math.max(1,Number(draft.hpRoll)+oldCon);c.level=lv;c.proficiencyBonus=lv>=5?3:2;c.levelProgression=c.levelProgression||[];if(lv===4){const a=draft.asi;const inc={};inc[a.first]=a.method==='two'?1:2;if(a.method==='two')inc[a.second]=1;Object.entries(inc).forEach(([k,v])=>{c.finalAbilityScores[k]=Number(c.finalAbilityScores[k]||10)+v;if(c.baseAbilityScores&&typeof c.baseAbilityScores[k]==='number')c.baseAbilityScores[k]+=v});c.abilityScoreImprovements=c.abilityScoreImprovements||[];c.abilityScoreImprovements.push({level:4,...inc})}const conChange=mod(c,'constitution')-oldCon;const hpBase=c.maxHitPoints??(dice[c.class]+oldCon+(c.class==='Sorcerer'&&c.classFeatures?.choices?.origin==='Draconic Bloodline'?1:0));c.maxHitPoints=Number(hpBase)+gain+conChange*lv+(c.class==='Sorcerer'&&c.classFeatures?.choices?.origin==='Draconic Bloodline'?1:0);c.hitPointHistory=c.hitPointHistory||[];c.hitPointHistory.push({level:lv,die:'d'+dice[c.class],roll:Number(draft.hpRoll),constitutionModifier:oldCon,gained:gain});c.classFeatures=c.classFeatures||{};c.classFeatures.automatic=[...(c.classFeatures.automatic||[]),...draft.features];c.classFeatures.level=lv;c.classFeatures.levelChoices=c.classFeatures.levelChoices||{};c.classFeatures.levelChoices[lv]=clone(draft.choices);if(draft.choices.subclass)c.subclass=draft.choices.subclass;if(extra[c.class]?.[lv]?.[c.subclass])c.classFeatures.automatic.push(...extra[c.class][lv][c.subclass]);c.spells=c.spells||{};for(const key of ['cantrips','level1','level2','level3'])c.spells[key]=[...new Set([...(c.spells[key]||[]),...(draft.spells[key]||[])])];c.spells.level=lv;c.spells.spellSlots=mode(c.class)?slots[mode(c.class)][lv]:[0,0,0];if(c.spells.castingAbility){const casting=mod(c,c.spells.castingAbility);c.spells.spellcastingModifier=casting;c.spells.spellAttackBonus=c.proficiencyBonus+casting;c.spells.spellSaveDC=8+c.proficiencyBonus+casting;}c.spells.spellSlotsRemaining=[...c.spells.spellSlots];c.levelProgression.push({level:lv,hp:clone(c.hitPointHistory[c.hitPointHistory.length-1]),features:[...draft.features],choices:clone(draft.choices),asi:lv===4?clone(draft.asi):null,spells:clone(draft.spells),at:new Date().toISOString()});sessionStorage.setItem('dndCharacter',JSON.stringify(c));sessionStorage.removeItem('chroniclesLevelUpDraft');draft=null;root.hidden=true;$('chroniclesManager').hidden=false;window.chroniclesRefreshManager?.();msg.textContent='';alert(`${c.characterName||'Character'} advanced to level ${lv}! Save the updated JSON file to preserve this level on disk.`);window.scrollTo(0,0)}
+ function render(){writeDraft();body.replaceChildren();msg.textContent='';$('chroniclesLevelTitle').textContent=`LEVEL ${draft.level} · ${['HIT POINTS','CLASS FEATURES','ABILITY SCORES','SPELLS & REVIEW'][page]}`;$('chroniclesLevelStep').textContent=`STEP ${page+1} OF 4 · ${base.class}`;if(page===0)hp();if(page===1)featurePage();if(page===2)asiPage();if(page===3){spellPage();const summary=document.createElement('p');summary.textContent='Review: '+(base.characterName||'Adventurer')+' · '+base.class+' · Level '+(draft.level-1)+' → '+draft.level+' · HP die '+(draft.hpRoll||'—')+' · '+draft.features.join(', ');body.append(summary)}$('chroniclesLevelBack').disabled=page===0;$('chroniclesLevelNext').textContent=page===3?'✓ COMPLETE LEVEL UP':'CONTINUE →'}
+ $('chroniclesLevelBack').onclick=()=>{page=Math.max(0,page-1);render()};$('chroniclesLevelNext').onclick=()=>{const err=validate();if(err){msg.textContent=err;return}if(page===3)commit();else{page++;render()}};$('chroniclesLevelExit').onclick=leave;window.startChroniclesLevelUp=start;
+})();
 </script>
 </body>
 </html>
