@@ -1,0 +1,289 @@
+{
+  "race": "elf",
+  "raceName": "Elf",
+  "raceModifiers": {
+    "dexterity": 2
+  },
+  "raceBenefits": [
+    "Darkvision",
+    "Fey Ancestry",
+    "Trance",
+    "Keen Senses"
+  ],
+  "raceSubrace": null,
+  "draconicAncestry": null,
+  "racialSpells": [],
+  "classPath": "balanced",
+  "class": "Artificer",
+  "classDetails": {
+    "level": 1
+  },
+  "abilityScoreMethod": "roll",
+  "baseAbilityScores": {
+    "intelligence": 15,
+    "charisma": 12,
+    "strength": 7,
+    "dexterity": 14,
+    "wisdom": 15,
+    "constitution": 12
+  },
+  "racialAbilityModifiers": {
+    "strength": 0,
+    "dexterity": 2,
+    "constitution": 0,
+    "intelligence": 0,
+    "wisdom": 0,
+    "charisma": 0
+  },
+  "halfElfAbilityChoices": [],
+  "finalAbilityScores": {
+    "strength": 7,
+    "dexterity": 16,
+    "constitution": 12,
+    "intelligence": 15,
+    "wisdom": 15,
+    "charisma": 12
+  },
+  "rolls": [
+    {
+      "value": 15,
+      "dice": [
+        5,
+        4,
+        6,
+        4
+      ],
+      "discardedIndex": 1,
+      "ability": "intelligence"
+    },
+    {
+      "value": 12,
+      "dice": [
+        4,
+        2,
+        2,
+        6
+      ],
+      "discardedIndex": 1,
+      "ability": "charisma"
+    },
+    {
+      "value": 7,
+      "dice": [
+        2,
+        2,
+        1,
+        3
+      ],
+      "discardedIndex": 2,
+      "ability": "strength"
+    },
+    {
+      "value": 14,
+      "dice": [
+        2,
+        6,
+        4,
+        4
+      ],
+      "discardedIndex": 0,
+      "ability": "dexterity"
+    },
+    {
+      "value": 15,
+      "dice": [
+        1,
+        4,
+        6,
+        5
+      ],
+      "discardedIndex": 0,
+      "ability": "wisdom"
+    },
+    {
+      "value": 12,
+      "dice": [
+        1,
+        4,
+        6,
+        2
+      ],
+      "discardedIndex": 0,
+      "ability": "constitution"
+    }
+  ],
+  "background": {
+    "id": "sage",
+    "name": "Sage",
+    "desc": "A researcher devoted to knowledge and learning.",
+    "skills": [
+      "Arcana",
+      "History"
+    ],
+    "languages": 2,
+    "feature": "Researcher"
+  },
+  "proficiencies": {
+    "backgroundId": "sage",
+    "class": "Artificer",
+    "skills": [
+      "Arcana",
+      "History",
+      "Perception",
+      "Investigation",
+      "Sleight of Hand"
+    ],
+    "classSkillChoices": [
+      "Investigation",
+      "Sleight of Hand"
+    ],
+    "racialSkillChoices": [],
+    "savingThrows": [
+      "Constitution",
+      "Intelligence"
+    ],
+    "weapons": [
+      "Simple weapons"
+    ],
+    "armor": [
+      "Light armor",
+      "Medium armor",
+      "Shields"
+    ],
+    "tools": [
+      "Thieves’ tools",
+      "Tinker’s tools"
+    ],
+    "vehicles": [],
+    "languages": [
+      "Common",
+      "Elvish",
+      "Dwarvish",
+      "Gnomish"
+    ],
+    "extraChoices": {
+      "background-language-0": "Dwarvish",
+      "background-language-1": "Gnomish"
+    },
+    "languageChoicesPending": 0,
+    "toolChoicesPending": 0
+  },
+  "classFeatures": {
+    "level": 1,
+    "class": "Artificer",
+    "choices": {},
+    "automatic": [
+      "Magical Tinkering — imbue tiny nonmagical objects with simple magical effects.",
+      "Artificer Spellcasting — prepare spells from the artificer list."
+    ]
+  },
+  "spells": {
+    "level": 1,
+    "class": "Artificer",
+    "castingAbility": "intelligence",
+    "spellcastingModifier": 2,
+    "cantrips": [
+      "Shocking Grasp",
+      "Mending"
+    ],
+    "domainCantrips": [],
+    "level1": [
+      "Detect Magic",
+      "Identify",
+      "Grease"
+    ],
+    "selectionMode": "prepared",
+    "fullClassListAvailable": true,
+    "availableLevel1": [
+      "Alarm",
+      "Cure Wounds",
+      "Detect Magic",
+      "Disguise Self",
+      "Expeditious Retreat",
+      "Faerie Fire",
+      "False Life",
+      "Feather Fall",
+      "Grease",
+      "Identify",
+      "Jump",
+      "Longstrider",
+      "Purify Food and Drink",
+      "Sanctuary"
+    ]
+  },
+  "equipment": {
+    "mode": "kit",
+    "kitName": "Inventor",
+    "kitIndex": 0,
+    "items": [
+      {
+        "name": "Scale mail",
+        "quantity": 1
+      },
+      {
+        "name": "Light crossbow",
+        "quantity": 1
+      },
+      {
+        "name": "Crossbow bolts (20)",
+        "quantity": 1
+      },
+      {
+        "name": "Thieves’ tools",
+        "quantity": 1
+      },
+      {
+        "name": "Tinker’s tools",
+        "quantity": 1
+      },
+      {
+        "name": "Dungeoneer’s pack",
+        "quantity": 1
+      }
+    ],
+    "packContents": [
+      {
+        "name": "Dungeoneer’s pack",
+        "quantity": 1,
+        "contents": [
+          "Backpack",
+          "Crowbar",
+          "Hammer",
+          "10 pitons",
+          "10 torches",
+          "Tinderbox",
+          "10 days of rations",
+          "Waterskin",
+          "50 feet of hempen rope"
+        ]
+      }
+    ],
+    "backgroundItems": [
+      "Ink (1 oz.)",
+      "Ink pen",
+      "Small knife",
+      "Letter from colleague",
+      "Common clothes",
+      "10 gp"
+    ],
+    "rulesNote": "Class kits are curated suggestions; custom gear is not constrained by gold or encumbrance."
+  },
+  "characterName": "Tinker Thom",
+  "identity": {
+    "playerName": "Zachery",
+    "alignment": "Neutral Good",
+    "age": "118",
+    "height": "5' 8\"",
+    "weight": "165 lbs",
+    "eyes": "Brown",
+    "skin": "Wheat",
+    "hair": "Silver",
+    "personalityTraits": "Mr. Thom is an absolute recluse. He prefer the solitude of his magical workshop, but occasionally will perform expeditions to dangerous places to recover lost magic artifacts.",
+    "ideals": "Thom is motivated by two things: knowledge and money. He creates magnificent magical devices, and for the right price he might even part with one of them.",
+    "bonds": "Mr. Thom loves his magical devices. He hates when they are mistreated by buyer's or thieves. Mr. Thom even suspects that some magical things possess sentience...",
+    "flaws": "Too often has Mr. Thom risked his life chasing some legendary magical item. Cave delving has proven especially difficult, but for the right artifact, there is no limit to how far he will go.",
+    "backstory": "Mr. Thom got married to a woman called Syrna many year ago. They were young and motivated, plus they needed money, so they opened a tinker shop selling magical goods and services. \nBusiness was good, but being amateur at their craft, their was little room for expansion. Then tragedy stuck; the death of Syrna. Thom was affected greatly, and soon he began closing the shop early, and turning customers away. Only the most persistent customers have been able to leverage his services since. Some of those customers say Thom is working on something; hidden in the back of his shop. Nobody dares to ask the elf what he is doing back there.",
+    "appearance": "Despite his young age (relatively speaking), Tinker Thom looks old. His small frame and posture give the impression of someone twice his age. Sometimes the poor man is confused with a gnome! No doubt the wrinkles and grey hair came from the years of stress working alone after Syrna's passing.",
+    "allies": "Tinkerer Thom enjoys a positive connection with a few of the local Dwarf Lords and the merchants within their halls. In his home village he is respected, though often avoided."
+  }
+}
