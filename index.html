@@ -1107,7 +1107,7 @@ function renderFeatures(){
  addMeta('Spellcasting ability: '+(stat?stat[0].toUpperCase()+stat.slice(1):'None at level 1'));
  addMeta('Spellcasting modifier: '+(mod===null?'N/A':(mod>=0?'+':'')+mod));
  const bonus=mod===null?null:2+mod;addMeta('Spell attack bonus: '+(bonus===null?'N/A':(bonus>=0?'+':'')+bonus));addMeta('Spell save DC: '+(mod===null?'N/A':8+2+mod));
- const spellRoot=document.getElementById('spellOptions');spellRoot.replaceChildren();
+ const spellRoot=document.getElementById('spellOptions');spellRoot.replaceChildren();spellRoot.append(window.chroniclesBrowseSpellsButton());
  // Nature Domain grants one druid cantrip in addition to normal cleric cantrips.
  // Render immediately when the domain card changes, without requiring a save.
  const natureDomain=cls==='Cleric'&&featureSelections.domain==='Nature';
@@ -1135,7 +1135,7 @@ function drawSpellGroup(root,heading,names,limit,kind,readonly){
  const h=document.createElement('h3');h.className='spell-level';h.textContent=heading;root.append(h);
  const counter=document.createElement('div');counter.className='spell-counter';counter.textContent=readonly?'LOCKED · Unlocks at level 2 · Reference only':'Selected '+spellSelections[kind].length+' / '+limit;if(readonly)counter.classList.add('future-spells-counter');root.append(counter);
  const grid=document.createElement('div');grid.className='spell-grid';
- names.forEach(name=>{const info=spellCatalog[name]||['✧','A magical effect from the class spell list.'];const selected=spellSelections[kind].includes(name);const card=document.createElement('label');card.className='spell-card'+(selected?' chosen':'');const input=document.createElement('input');input.type='checkbox';input.checked=selected;input.disabled=readonly;const icon=document.createElement('span');icon.className='spell-icon';icon.textContent=info[0];const title=document.createElement('strong');title.textContent=name;const detail=document.createElement('small');detail.textContent=info[1];card.append(input,icon,title,detail);input.onchange=()=>{if(input.checked){if(spellSelections[kind].length>=limit){input.checked=false;return;}spellSelections[kind].push(name);}else spellSelections[kind]=spellSelections[kind].filter(x=>x!==name);renderFeatures()};grid.append(card)});if(readonly){grid.classList.add('future-spells');grid.setAttribute('aria-label','Future spell list, unavailable until level 2');}root.append(grid);
+ names.forEach(name=>{const info=spellCatalog[name]||['✧','A magical effect from the class spell list.'];const selected=spellSelections[kind].includes(name);const card=document.createElement('label');card.className='spell-card'+(selected?' chosen':'');const input=document.createElement('input');input.type='checkbox';input.checked=selected;input.disabled=readonly;const icon=document.createElement('span');icon.className='spell-icon';icon.textContent=info[0];const title=document.createElement('strong');title.textContent=name;const detail=document.createElement('small');detail.textContent=info[1];card.append(input,icon,title,detail);card.append(window.chroniclesSpellInfoButton(name));input.onchange=()=>{if(input.checked){if(spellSelections[kind].length>=limit){input.checked=false;return;}spellSelections[kind].push(name);}else spellSelections[kind]=spellSelections[kind].filter(x=>x!==name);renderFeatures()};grid.append(card)});if(readonly){grid.classList.add('future-spells');grid.setAttribute('aria-label','Future spell list, unavailable until level 2');}root.append(grid);
 }
 document.getElementById('featureFinish').onclick=()=>{
  const c=getChar(),cls=c.class,rule=featureRules[cls]||{},spellRule=spellRules[cls];
@@ -1615,6 +1615,72 @@ document.getElementById('exportPdf').addEventListener('click',exportCharacterPdf
 .level-body{display:grid;gap:15px;color:#f1e8ed}.level-body h3{color:#e7c58f;font:600 17px Cinzel,serif;margin:8px 0 0}.level-body p{line-height:1.65;margin:0}.level-body small{color:#b9a9c2}.level-field{display:grid;gap:7px;color:#dfc8e8;font-weight:600}.level-field input,.level-field select,.level-field textarea{width:100%;box-sizing:border-box;border:1px solid #78638c;background:#17131e;color:#fff;border-radius:7px;padding:12px;font:inherit}.level-spell-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:8px;max-height:290px;overflow:auto}.level-spell-grid label{border:1px solid #52445f;border-radius:6px;padding:9px;background:#211b29;font-size:13px}.level-spell-grid input{accent-color:#a879d4}#chroniclesLevelWizard button{cursor:pointer}#chroniclesLevelWizard button:disabled{opacity:.4;cursor:not-allowed}
 </style>
 <style>.chronicles-level-feature{padding:11px 14px;margin:9px 0;border:1px solid rgba(173,144,205,.28);border-radius:9px;background:rgba(119,83,149,.09)}.chronicles-level-feature strong{display:block;margin-bottom:5px}.chronicles-level-feature p,.chronicles-choice-description{margin:0;line-height:1.5;font-size:.91rem;opacity:.85}.chronicles-choice-description{margin:7px 0 14px;padding-left:9px;border-left:2px solid rgba(173,144,205,.5)}</style>
+<script src="spell-library.js"></script>
+<style>
+.chronicles-spell-link{position:absolute;right:10px;top:9px;border:0;background:transparent;color:#d8b3ff;text-decoration:underline;text-underline-offset:3px;padding:4px 3px;font:600 12px inherit;cursor:pointer;z-index:2}
+.chronicles-spell-link:hover,.chronicles-spell-link:focus-visible{color:#fff;outline:2px solid #b38cd7;outline-offset:2px;border-radius:3px}
+.spell-card{position:relative;padding-right:54px!important}
+.chronicles-browse{display:inline-flex;align-items:center;gap:9px;margin:12px 0 18px;padding:10px 15px;border-radius:9px;background:#30223f;color:#f3dda8;border:1px solid #9c79ba;cursor:pointer;font-weight:650}
+.chronicles-browse:hover{background:#513465;color:white}
+#chroniclesSpellArchive[hidden]{display:none!important}
+#chroniclesSpellArchive{position:fixed;inset:0;z-index:99999;background:rgba(7,6,12,.9);display:flex;justify-content:center;align-items:center;padding:20px;box-sizing:border-box}
+.chronicles-archive-panel{width:min(1120px,100%);height:min(850px,94vh);display:flex;flex-direction:column;background:#171320;color:#f2e8f4;border:1px solid #9874ae;border-radius:16px;box-shadow:0 15px 65px #000b;overflow:hidden}
+.chronicles-archive-head{display:flex;align-items:center;justify-content:space-between;padding:17px 23px;border-bottom:1px solid #594666;gap:16px}
+.chronicles-archive-head h2{margin:0;font:600 24px Cinzel,serif;color:#f2d59a}
+.chronicles-archive-head small{display:block;color:#c8b6d0;margin-top:4px}
+.chronicles-archive-close{border:1px solid #8b6fa1;border-radius:9px;background:#352643;color:#fff;padding:10px 14px;cursor:pointer}
+.chronicles-archive-filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:9px;padding:14px 20px;border-bottom:1px solid #594666}
+.chronicles-archive-filters input,.chronicles-archive-filters select{background:#241b31;border:1px solid #725d85;border-radius:8px;padding:10px;color:#f5eaf6;min-width:0;width:100%;box-sizing:border-box}
+.chronicles-archive-main{display:grid;grid-template-columns:minmax(220px,36%) 1fr;min-height:0;flex:1}
+.chronicles-archive-list{overflow:auto;border-right:1px solid #594666;padding:9px}
+.chronicles-archive-group{font:600 13px Cinzel,serif;color:#e5bcf9;padding:12px 10px 6px}
+.chronicles-archive-item{width:100%;text-align:left;border:1px solid transparent;background:transparent;color:#eee4f0;border-radius:8px;padding:10px 12px;cursor:pointer;margin-bottom:2px}
+.chronicles-archive-item:hover,.chronicles-archive-item.active{background:#3b2b4b;border-color:#775d93}
+.chronicles-archive-item small{display:block;color:#b9a6c2;margin-top:3px}
+.chronicles-archive-detail{overflow:auto;padding:23px 28px;line-height:1.65}
+.chronicles-archive-detail h3{font:600 27px Cinzel,serif;color:#f2d59a;margin:0 0 5px}
+.chronicles-archive-subtitle{color:#d2addc;margin:0 0 18px}
+.chronicles-archive-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.chronicles-archive-stat{background:#231b2d;border:1px solid #554463;padding:9px 12px;border-radius:8px;overflow-wrap:anywhere}
+.chronicles-archive-stat b{display:block;color:#d2b2e1;font-size:12px}
+.chronicles-archive-detail h4{font:600 16px Cinzel,serif;color:#f2d59a;margin:20px 0 6px}
+.chronicles-archive-detail p{margin:7px 0 12px}
+.chronicles-archive-note{font-size:12px;color:#bfb1c8;padding:10px 20px;border-top:1px solid #594666}
+body.chronicles-archive-open{overflow:hidden}
+@media(max-width:680px){#chroniclesSpellArchive{padding:6px}.chronicles-archive-panel{height:98vh}.chronicles-archive-head{padding:11px 13px}.chronicles-archive-head h2{font-size:18px}.chronicles-archive-filters{grid-template-columns:1fr 1fr;padding:10px}.chronicles-archive-filters input{grid-column:1/-1}.chronicles-archive-main{grid-template-columns:1fr;grid-template-rows:33% 67%}.chronicles-archive-list{border-right:0;border-bottom:1px solid #594666}.chronicles-archive-detail{padding:13px}.chronicles-archive-stats{gap:6px}.chronicles-archive-stat{padding:6px;font-size:13px}}
+</style>
+<div id="chroniclesSpellArchive" hidden role="dialog" aria-modal="true" aria-labelledby="chroniclesArchiveTitle">
+ <div class="chronicles-archive-panel">
+  <div class="chronicles-archive-head"><div><h2 id="chroniclesArchiveTitle">✧ The Arcane Archives</h2><small>Spell reference · Levels 0–3 · 2014 fifth edition</small></div><button class="chronicles-archive-close" id="chroniclesArchiveClose" type="button">✕ Close</button></div>
+  <div class="chronicles-archive-filters"><input id="chroniclesArchiveSearch" type="search" placeholder="Search spell names or descriptions…" aria-label="Search spells"><select id="chroniclesArchiveLevel" aria-label="Filter spell level"><option value="all">All spell levels</option><option value="0">Cantrips</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select><select id="chroniclesArchiveClass" aria-label="Filter spell class"><option value="all">All classes</option></select></div>
+  <div class="chronicles-archive-main"><div class="chronicles-archive-list" id="chroniclesArchiveList" role="navigation" aria-label="Spell list"></div><article class="chronicles-archive-detail" id="chroniclesArchiveDetail" aria-live="polite"></article></div>
+  <div class="chronicles-archive-note">SRD 5.1 entries contain source spell descriptions under CC BY 4.0. Other entries are marked as editorial summaries. This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.</div>
+ </div>
+</div>
+<script>
+(function(){
+ 'use strict';
+ const $=id=>document.getElementById(id),records=window.CHRONICLES_SPELL_LIBRARY||[];
+ const overlay=$('chroniclesSpellArchive'),search=$('chroniclesArchiveSearch'),level=$('chroniclesArchiveLevel'),cls=$('chroniclesArchiveClass'),list=$('chroniclesArchiveList'),detail=$('chroniclesArchiveDetail');
+ let active=null,previousFocus=null;
+ const levels=['Cantrips','Level 1','Level 2','Level 3'];
+ const classes=[...new Set(records.flatMap(x=>x.classes))].sort();
+ classes.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;cls.append(o)});
+ function add(parent,tag,value,className){const el=document.createElement(tag);if(value!==undefined)el.textContent=value;if(className)el.className=className;parent.append(el);return el}
+ function matches(){const q=search.value.trim().toLowerCase();return records.filter(r=>(level.value==='all'||String(r.level)===level.value)&&(cls.value==='all'||r.classes.includes(cls.value))&&(!q||r.name.toLowerCase().includes(q)||r.description.toLowerCase().includes(q))).sort((a,b)=>a.level-b.level||a.classes[0].localeCompare(b.classes[0])||a.name.localeCompare(b.name))}
+ function showDetail(r){active=r.name;detail.replaceChildren();add(detail,'h3',r.name);add(detail,'p',`${levels[r.level]} · ${r.school}`,'chronicles-archive-subtitle');const stats=add(detail,'div',undefined,'chronicles-archive-stats');for(const [k,v] of [['Casting time',r.castingTime],['Range',r.range],['Components',r.components],['Duration',r.duration],['Area / target',r.area],['Save / attack',r.save]]){const el=add(stats,'div',undefined,'chronicles-archive-stat');add(el,'b',k);add(el,'span',v)}add(detail,'h4','Spell description');add(detail,'p',r.description);if(r.higherLevels&&r.higherLevels!=='—'){add(detail,'h4','At higher levels');add(detail,'p',r.higherLevels)}add(detail,'h4','Available to');add(detail,'p',r.classes.join(' · '));add(detail,'p',r.detailStatus,'chronicles-archive-subtitle');const link=add(detail,'a','SRD 5.1 source and license ↗');link.href='https://dnd.wizards.com/resources/systems-reference-document';link.target='_blank';link.rel='noopener noreferrer';link.style.color='#d8b3ff';detail.scrollTop=0;list.querySelectorAll('button').forEach(b=>{b.classList.toggle('active',b.dataset.spell===active);b.setAttribute('aria-current',String(b.dataset.spell===active))})}
+ function render(){const items=matches();list.replaceChildren();if(!items.length){add(list,'p','No spells match your filters.');detail.replaceChildren();add(detail,'p','Try another search or filter.');return}let last=-1;items.forEach(r=>{if(r.level!==last){add(list,'div',levels[r.level],'chronicles-archive-group');last=r.level}const b=add(list,'button',r.name,'chronicles-archive-item');b.type='button';b.dataset.spell=r.name;add(b,'small',r.classes.join(' · '));b.onclick=()=>showDetail(r)});showDetail(items.find(r=>r.name===active)||items[0])}
+ function open(name){previousFocus=document.activeElement;search.value='';level.value='all';cls.value='all';active=name||null;overlay.hidden=false;document.body.classList.add('chronicles-archive-open');render();if(name){const b=[...list.querySelectorAll('button')].find(b=>b.dataset.spell===name);b?.scrollIntoView({block:'nearest'})}search.focus()}
+ function close(){overlay.hidden=true;document.body.classList.remove('chronicles-archive-open');previousFocus?.focus?.()}
+ search.oninput=render;level.onchange=render;cls.onchange=render;$('chroniclesArchiveClose').onclick=close;
+ overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+ document.addEventListener('keydown',e=>{if(overlay.hidden)return;if(e.key==='Escape'){e.preventDefault();close()}if(e.key==='Tab'){const focusable=[...overlay.querySelectorAll('button,input,select,a')].filter(el=>el.getClientRects().length);const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
+ window.chroniclesOpenSpellArchive=open;
+ window.chroniclesSpellInfoButton=function(name){const b=document.createElement('button');b.type='button';b.className='chronicles-spell-link';b.textContent='Details';b.title='Read '+name+' spell details';b.setAttribute('aria-label','View details for '+name);b.onclick=e=>{e.preventDefault();e.stopPropagation();open(name)};return b};
+ window.chroniclesBrowseSpellsButton=function(){const b=document.createElement('button');b.type='button';b.className='chronicles-browse';b.textContent='✧ Browse All Spells';b.onclick=e=>{e.preventDefault();open()};return b};
+})();
+</script>
+
 <script>/* Chronicles: incremental 1–5 leveling. Drafts never mutate the committed character. */
 (function(){
  const $=id=>document.getElementById(id), clone=x=>JSON.parse(JSON.stringify(x));
@@ -1786,6 +1852,7 @@ document.getElementById('exportPdf').addEventListener('click',exportCharacterPdf
  function featurePage(){const c=base.class,lv=draft.level;text('New class features at this level:');(draft.features.length?draft.features:['No new class features at this level.']).forEach(featureEntry);const options=subclasses[c]||[];if(options.length&&((['Druid','Wizard'].includes(c)&&lv===2)||(!['Druid','Wizard'].includes(c)&&lv===3)))addChoice('Subclass / tradition',options,'subclass');if(draft.choices.subclass){const bonus=extra[c]?.[lv]?.[draft.choices.subclass]||[];if(bonus.length){text('Features from your chosen subclass:');bonus.forEach(featureEntry)}}if(c==='Paladin'&&lv===2||c==='Ranger'&&lv===2)addChoice('Fighting style',c==='Paladin'?['Defense','Dueling','Great Weapon Fighting','Protection']:['Archery','Defense','Dueling','Two-Weapon Fighting'],'fightingStyle');if(c==='Warlock'&&lv===3)addChoice('Pact boon',['Pact of the Chain','Pact of the Blade','Pact of the Tome'],'pact');if(c==='Sorcerer'&&lv===3){addChoice('Metamagic option 1',['Careful Spell','Distant Spell','Empowered Spell','Extended Spell','Heightened Spell','Quickened Spell','Subtle Spell','Twinned Spell'],'meta1');addChoice('Metamagic option 2',['Careful Spell','Distant Spell','Empowered Spell','Extended Spell','Heightened Spell','Quickened Spell','Subtle Spell','Twinned Spell'],'meta2')}if(c==='Warlock'&&[2,5].includes(lv))text('Eldritch Invocation selections require their individual prerequisites; record these in the notes below.');if(c==='Fighter'&&lv===3)text('Battle Master maneuvers and Eldritch Knight spell selections can be recorded in the notes below.');if(c==='Monk'&&lv===3)text('Way of the Four Elements disciplines can be recorded in the notes below.');if(c==='Ranger'&&lv===3)text('Hunter features or Beast Master companion details can be recorded in the notes below.');if(c==='Artificer'&&[2,3,5].includes(lv))text('Artificer infusions and specialist choices can be recorded in the notes below.');const notes=document.createElement('textarea');notes.rows=3;notes.placeholder='Optional class feature choices and notes (e.g. invocations, maneuvers, disciplines, expertise)';notes.value=draft.choices.notes||'';notes.oninput=()=>{draft.choices.notes=notes.value;writeDraft()};body.append(field('Feature notes',notes));text('Some subclass-specific mechanics and optional feats are reserved for the next rules expansion.','small')}
  function asiPage(){text(`Proficiency bonus: +${draft.level>=5?3:2} (automatically updated at level 5).`);if(draft.level!==4){text('Ability Score Improvement is available at level 4. No ability scores change on this level.');return}text('Choose +2 to one ability or +1 to two different abilities (maximum score 20). Feats are planned for the next pass.');body.append(field('Improvement method',makeSelect([['one','+2 to one ability'],['two','+1 to two abilities']],draft.asi.method||'one',v=>{draft.asi={method:v};render()})));const names=['strength','dexterity','constitution','intelligence','wisdom','charisma'];const choices=[['','Choose ability…'],...names.map(x=>[x,x[0].toUpperCase()+x.slice(1)+' ('+val(base,x)+')'])];body.append(field('First ability',makeSelect(choices,draft.asi.first||'',v=>{draft.asi.first=v;render()})));if(draft.asi.method==='two')body.append(field('Second ability',makeSelect(choices,draft.asi.second||'',v=>{draft.asi.second=v;render()})))}
  function spellPage(){
+  body.append(window.chroniclesBrowseSpellsButton());
   const cls=base.class,lv=draft.level,kind=mode(cls),prior=base.spells||{};
   const ability=prior.castingAbility||({Bard:'charisma',Cleric:'wisdom',Druid:'wisdom',Paladin:'charisma',Ranger:'wisdom',Sorcerer:'charisma',Warlock:'charisma',Wizard:'intelligence',Artificer:'intelligence'}[cls]||null);
   if(!kind){text('No standard spellcasting progression for this class at this level.');return}
@@ -1814,7 +1881,7 @@ document.getElementById('exportPdf').addEventListener('click',exportCharacterPdf
     const input=document.createElement('input');input.type='checkbox';input.checked=draft.spells[key].includes(name);
     const icon=document.createElement('span');icon.className='spell-icon';icon.textContent=info[0];
     const title=document.createElement('strong');title.textContent=name;
-    const detail=document.createElement('small');detail.textContent=info[1];card.append(input,icon,title,detail);
+    const detail=document.createElement('small');detail.textContent=info[1];card.append(input,icon,title,detail);card.append(window.chroniclesSpellInfoButton(name));
     input.onchange=()=>{
      const selected=draft.spells[key];if(input.checked){
       const total=['level1','level2','level3'].reduce((sum,k)=>sum+draft.spells[k].length,0);
